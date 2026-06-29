@@ -107,6 +107,11 @@ begin
 end;
 $$;
 
+revoke execute on function public.complete_generation_and_charge(uuid, uuid, text) from public;
+revoke execute on function public.complete_generation_and_charge(uuid, uuid, text) from anon;
+revoke execute on function public.complete_generation_and_charge(uuid, uuid, text) from authenticated;
+grant execute on function public.complete_generation_and_charge(uuid, uuid, text) to service_role;
+
 create or replace function public.mark_generation_failed(
   p_user_id uuid,
   p_generation_id uuid,
@@ -128,6 +133,11 @@ begin
 end;
 $$;
 
+revoke execute on function public.mark_generation_failed(uuid, uuid, text) from public;
+revoke execute on function public.mark_generation_failed(uuid, uuid, text) from anon;
+revoke execute on function public.mark_generation_failed(uuid, uuid, text) from authenticated;
+grant execute on function public.mark_generation_failed(uuid, uuid, text) to service_role;
+
 alter table public.profiles enable row level security;
 alter table public.generation_jobs enable row level security;
 alter table public.credit_transactions enable row level security;
@@ -137,18 +147,9 @@ create policy "profiles_select_own"
 on public.profiles for select
 using (auth.uid() = id);
 
-create policy "profiles_update_own"
-on public.profiles for update
-using (auth.uid() = id)
-with check (auth.uid() = id);
-
 create policy "generation_jobs_select_own"
 on public.generation_jobs for select
 using (auth.uid() = user_id);
-
-create policy "generation_jobs_insert_own"
-on public.generation_jobs for insert
-with check (auth.uid() = user_id);
 
 create policy "credit_transactions_select_own"
 on public.credit_transactions for select
@@ -169,13 +170,6 @@ on conflict (id) do nothing;
 create policy "generated_images_select_own"
 on storage.objects for select
 using (
-  bucket_id = 'generated-images'
-  and auth.uid()::text = (storage.foldername(name))[1]
-);
-
-create policy "generated_images_insert_own"
-on storage.objects for insert
-with check (
   bucket_id = 'generated-images'
   and auth.uid()::text = (storage.foldername(name))[1]
 );
