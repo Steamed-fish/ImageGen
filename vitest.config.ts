@@ -10,6 +10,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      "server-only": new URL("./tests/mocks/server-only.ts", import.meta.url).pathname,
       "@": new URL(".", import.meta.url).pathname
     }
   }

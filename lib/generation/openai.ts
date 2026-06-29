@@ -19,7 +19,7 @@ export async function generateImageBytes({
     model: "gpt-image-2",
     prompt,
     quality: "medium",
-    response_format: "b64_json",
+    output_format: "png",
     size: getImageSizeForAspectRatio(aspectRatio)
   });
   const imageBase64 = response.data?.[0]?.b64_json;
