@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AuthDialog } from "@/components/auth-dialog";
 import { PromptPreview } from "@/components/prompt-preview";
 import { ResultPanel } from "@/components/result-panel";
@@ -32,6 +32,8 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [joined, setJoined] = useState(false);
+  const [isJoiningWaitlist, setIsJoiningWaitlist] = useState(false);
+  const isJoiningWaitlistRef = useRef(false);
 
   const prompt = useMemo(() => {
     if (!input.subject.trim()) {
@@ -58,34 +60,53 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
     }
 
     setIsLoading(true);
-    const response = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input)
-    });
-    const payload = (await response.json()) as GenerateResponse;
-    setIsLoading(false);
+    setImageUrl(null);
 
-    if (!response.ok || "error" in payload) {
-      if ("code" in payload && payload.code === "INSUFFICIENT_CREDITS") {
-        setUpgradeOpen(true);
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input)
+      });
+      const payload = (await response.json()) as GenerateResponse;
+
+      if (!response.ok || "error" in payload) {
+        if ("code" in payload && payload.code === "INSUFFICIENT_CREDITS") {
+          setUpgradeOpen(true);
+        }
+        setError("error" in payload ? payload.error : "Generation failed.");
+        return;
       }
-      setError("error" in payload ? payload.error : "Generation failed.");
-      return;
-    }
 
-    setImageUrl(payload.imageUrl);
+      setImageUrl(payload.imageUrl);
+    } catch {
+      setError("We couldn't generate your image. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   async function joinWaitlist() {
-    const response = await fetch("/api/upgrade-waitlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source: "insufficient_credits_modal" })
-    });
+    if (joined || isJoiningWaitlistRef.current) {
+      return;
+    }
 
-    if (response.ok) {
-      setJoined(true);
+    isJoiningWaitlistRef.current = true;
+    setIsJoiningWaitlist(true);
+
+    try {
+      const response = await fetch("/api/upgrade-waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "insufficient_credits_modal" })
+      });
+
+      if (response.ok) {
+        setJoined(true);
+      }
+    } finally {
+      isJoiningWaitlistRef.current = false;
+      setIsJoiningWaitlist(false);
     }
   }
 
@@ -180,6 +201,7 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
         onClose={() => setUpgradeOpen(false)}
         onJoinWaitlist={joinWaitlist}
         joined={joined}
+        isJoiningWaitlist={isJoiningWaitlist}
       />
     </>
   );
