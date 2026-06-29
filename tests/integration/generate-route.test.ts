@@ -1,0 +1,238 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const validRequestBody = {
+  imageType: "poster",
+  aspectRatio: "16:9",
+  style: "editorial",
+  scene: "studio",
+  whitespace: "none",
+  subject: "a coffee brand launch poster",
+  extraRequirements: "Use warm light."
+};
+
+const user = {
+  id: "7fd61c8b-3256-4824-a72c-c54f26bb84e9",
+  email: "alex@example.com"
+};
+
+const getUser = vi.fn();
+const from = vi.fn();
+const rpc = vi.fn();
+const upload = vi.fn();
+const createSignedUrl = vi.fn();
+const generateImageBytes = vi.fn();
+
+type TableName = "generation_jobs" | "profiles";
+
+type RouteDependencies = {
+  processingJob?: unknown;
+  processingJobError?: unknown;
+  profile?: { credits_balance: number } | null;
+  profileError?: unknown;
+  insertedJob?: { id: string };
+  insertError?: unknown;
+};
+
+function createJsonRequest(body: unknown) {
+  return new Request("http://localhost/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+}
+
+function tableMock({
+  processingJob = null,
+  processingJobError = null,
+  profile = { credits_balance: 5 },
+  profileError = null,
+  insertedJob = { id: "generation-id" },
+  insertError = null
+}: RouteDependencies = {}) {
+  return (table: TableName) => {
+    if (table === "generation_jobs") {
+      return {
+        select: vi.fn((columns?: string) => {
+          if (columns === "id") {
+            return {
+              eq: vi.fn(() => ({
+                eq: vi.fn(() => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: processingJob,
+                    error: processingJobError
+                  })
+                }))
+              }))
+            };
+          }
+
+          return {
+            eq: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: insertedJob,
+                error: insertError
+              })
+            }))
+          };
+        }),
+        insert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: insertedJob,
+              error: insertError
+            })
+          })
+        })
+      };
+    }
+
+    if (table === "profiles") {
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: profile,
+              error: profileError
+            })
+          }))
+        }))
+      };
+    }
+
+    throw new Error(`Unexpected table: ${table}`);
+  };
+}
+
+async function importRoute(dependencies: RouteDependencies = {}) {
+  vi.resetModules();
+  vi.clearAllMocks();
+
+  getUser.mockResolvedValue({ data: { user }, error: null });
+  from.mockImplementation(tableMock(dependencies));
+  upload.mockResolvedValue({ data: { path: "stored/path.png" }, error: null });
+  createSignedUrl.mockResolvedValue({
+    data: { signedUrl: "https://example.com/generated.png" },
+    error: null
+  });
+  rpc.mockResolvedValue({ data: null, error: null });
+  generateImageBytes.mockResolvedValue(Buffer.from("fake-image"));
+
+  vi.doMock("@/lib/supabase/server", () => ({
+    createSupabaseServerClient: vi.fn(() => ({
+      auth: { getUser }
+    }))
+  }));
+  vi.doMock("@/lib/supabase/admin", () => ({
+    createSupabaseAdminClient: vi.fn(() => ({
+      from,
+      rpc,
+      storage: {
+        from: vi.fn(() => ({
+          upload,
+          createSignedUrl
+        }))
+      }
+    }))
+  }));
+  vi.doMock("@/lib/generation/openai", () => ({
+    generateImageBytes
+  }));
+
+  return import("@/app/api/generate/route");
+}
+
+describe("POST /api/generate", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("returns 401 when the request is unauthenticated", async () => {
+    const { POST } = await importRoute();
+    getUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(payload).toMatchObject({
+      code: "UNAUTHENTICATED"
+    });
+    expect(from).not.toHaveBeenCalled();
+    expect(generateImageBytes).not.toHaveBeenCalled();
+  });
+
+  it("returns 402 when the profile does not have enough credits", async () => {
+    const { POST } = await importRoute({
+      profile: { credits_balance: 0 }
+    });
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(402);
+    expect(payload).toMatchObject({
+      code: "INSUFFICIENT_CREDITS"
+    });
+    expect(generateImageBytes).not.toHaveBeenCalled();
+  });
+
+  it("generates, uploads, charges, and returns the signed image URL", async () => {
+    const { POST } = await importRoute();
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(generateImageBytes).toHaveBeenCalledWith({
+      prompt: expect.stringContaining("Create a poster about a coffee brand launch poster"),
+      aspectRatio: "16:9"
+    });
+    expect(upload).toHaveBeenCalledWith(
+      `${user.id}/generation-id.png`,
+      Buffer.from("fake-image"),
+      {
+        contentType: "image/png",
+        upsert: false
+      }
+    );
+    expect(rpc).toHaveBeenCalledWith("complete_generation_and_charge", {
+      p_user_id: user.id,
+      p_generation_id: "generation-id",
+      p_storage_path: `${user.id}/generation-id.png`
+    });
+    expect(createSignedUrl).toHaveBeenCalledWith(
+      `${user.id}/generation-id.png`,
+      60 * 60
+    );
+    expect(payload).toMatchObject({
+      id: "generation-id",
+      imageUrl: "https://example.com/generated.png",
+      compiledPrompt: expect.stringContaining(
+        "Create a poster about a coffee brand launch poster"
+      )
+    });
+  });
+
+  it("marks the job failed and does not charge credits when generation fails", async () => {
+    const { POST } = await importRoute();
+    generateImageBytes.mockRejectedValueOnce(new Error("OpenAI unavailable"));
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload).toMatchObject({
+      code: "GENERATION_FAILED",
+      error: expect.stringContaining("credits were not charged")
+    });
+    expect(rpc).toHaveBeenCalledWith("mark_generation_failed", {
+      p_user_id: user.id,
+      p_generation_id: "generation-id",
+      p_error_message: "OpenAI unavailable"
+    });
+    expect(rpc).not.toHaveBeenCalledWith(
+      "complete_generation_and_charge",
+      expect.anything()
+    );
+  });
+});
