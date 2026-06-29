@@ -38,4 +38,26 @@ describe("HomePage", () => {
     expect(screen.getByText("Prompt assembly")).toBeInTheDocument();
     expect(screen.getByText("Saved history")).toBeInTheDocument();
   });
+
+  it("keeps the mobile hero compact enough to reveal the preview", () => {
+    render(<HomePage />);
+
+    const heading = screen.getByRole("heading", {
+      name: "Structured image generation for polished creative work."
+    });
+    const hero = heading.closest("section");
+    const intro = screen.getByText(
+      /choose image type, ratio, style, scene, and whitespace/i
+    );
+    const ctaGroup = screen
+      .getByRole("link", { name: /start generating/i })
+      .parentElement;
+    const preview = screen.getByText("Generator preview").closest("section");
+
+    expect(hero).toHaveClass("gap-5", "px-4", "py-5");
+    expect(heading).toHaveClass("mt-4", "text-3xl", "sm:text-4xl");
+    expect(intro).toHaveClass("mt-4", "text-base", "sm:text-lg");
+    expect(ctaGroup).toHaveClass("mt-5", "flex-wrap", "gap-2");
+    expect(preview).toHaveClass("p-4", "sm:p-5");
+  });
 });

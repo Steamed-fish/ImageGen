@@ -22,18 +22,23 @@ export async function AppHeader() {
   }
 
   return (
-    <header className="border-b border-line bg-canvas/95 px-6 py-4">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-        <Link href="/" className="text-lg font-semibold text-ink">
+    <header className="border-b border-line bg-canvas/95 px-4 py-3 sm:px-6 sm:py-4">
+      <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-3 sm:flex-nowrap">
+        <Link
+          href="/"
+          className="shrink-0 text-base font-semibold text-ink sm:text-lg"
+        >
           Prompt Studio
         </Link>
-        <div className="flex items-center gap-4">
+        <div className="order-last flex w-full items-center gap-4 sm:order-none sm:w-auto">
           <Link href="/generate" className="text-sm text-muted hover:text-ink">
             Generate
           </Link>
           <Link href="/history" className="text-sm text-muted hover:text-ink">
             History
           </Link>
+        </div>
+        <div className="ml-auto flex min-w-0 items-center justify-end gap-2 sm:gap-4">
           <CreditBadge credits={credits} />
           <AccountMenu email={user?.email ?? null} />
         </div>
