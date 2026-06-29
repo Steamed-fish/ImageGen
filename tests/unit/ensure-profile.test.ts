@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ensureProfile } from "@/lib/auth/ensure-profile";
 
 const maybeSingle = vi.fn();
+const maybeSingleTransaction = vi.fn();
 const insertProfile = vi.fn();
 const insertTransaction = vi.fn();
 
@@ -22,6 +23,13 @@ vi.mock("@/lib/supabase/admin", () => ({
 
       if (table === "credit_transactions") {
         return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: maybeSingleTransaction
+              })
+            })
+          }),
           insert: insertTransaction
         };
       }
@@ -47,6 +55,7 @@ describe("ensureProfile", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     maybeSingle.mockResolvedValue({ data: null, error: null });
+    maybeSingleTransaction.mockResolvedValue({ data: null, error: null });
     insertProfile.mockResolvedValue({ error: null });
     insertTransaction.mockResolvedValue({ error: null });
   });
@@ -68,7 +77,23 @@ describe("ensureProfile", () => {
     });
   });
 
-  it("does not insert duplicates when a profile already exists", async () => {
+  it("does not insert duplicate signup credit transactions when one already exists", async () => {
+    maybeSingle.mockResolvedValueOnce({
+      data: { id: user.id },
+      error: null
+    });
+    maybeSingleTransaction.mockResolvedValueOnce({
+      data: { id: "transaction-id" },
+      error: null
+    });
+
+    await ensureProfile(user);
+
+    expect(insertProfile).not.toHaveBeenCalled();
+    expect(insertTransaction).not.toHaveBeenCalled();
+  });
+
+  it("inserts a missing signup credit transaction when the profile already exists", async () => {
     maybeSingle.mockResolvedValueOnce({
       data: { id: user.id },
       error: null
@@ -77,6 +102,36 @@ describe("ensureProfile", () => {
     await ensureProfile(user);
 
     expect(insertProfile).not.toHaveBeenCalled();
-    expect(insertTransaction).not.toHaveBeenCalled();
+    expect(insertTransaction).toHaveBeenCalledWith({
+      user_id: user.id,
+      amount: 5,
+      reason: "signup_bonus"
+    });
+  });
+
+  it("ignores duplicate signup transaction insert races", async () => {
+    maybeSingle.mockResolvedValueOnce({
+      data: { id: user.id },
+      error: null
+    });
+    insertTransaction.mockResolvedValueOnce({
+      error: { code: "23505", message: "duplicate key value violates unique constraint" }
+    });
+
+    await expect(ensureProfile(user)).resolves.toBeUndefined();
+  });
+
+  it("continues to ensure the signup transaction when profile insert races", async () => {
+    insertProfile.mockResolvedValueOnce({
+      error: { code: "23505", message: "duplicate key value violates unique constraint" }
+    });
+
+    await ensureProfile(user);
+
+    expect(insertTransaction).toHaveBeenCalledWith({
+      user_id: user.id,
+      amount: 5,
+      reason: "signup_bonus"
+    });
   });
 });

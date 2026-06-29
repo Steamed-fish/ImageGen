@@ -37,6 +37,10 @@ create table if not exists public.credit_transactions (
   created_at timestamptz not null default now()
 );
 
+create unique index if not exists credit_transactions_one_signup_bonus_per_user
+on public.credit_transactions(user_id)
+where reason = 'signup_bonus';
+
 create table if not exists public.upgrade_waitlist (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,

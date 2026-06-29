@@ -1,6 +1,10 @@
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+function isUniqueViolation(error: { code?: string } | null) {
+  return error?.code === "23505";
+}
+
 export async function ensureProfile(user: User) {
   const admin = createSupabaseAdminClient();
   const email = user.email ?? "";
@@ -21,20 +25,34 @@ export async function ensureProfile(user: User) {
     throw existingError;
   }
 
-  if (existing) {
-    return;
+  if (!existing) {
+    const { error: profileError } = await admin.from("profiles").insert({
+      id: user.id,
+      email,
+      display_name: displayName,
+      avatar_url: avatarUrl,
+      credits_balance: 5
+    });
+
+    if (profileError && !isUniqueViolation(profileError)) {
+      throw profileError;
+    }
   }
 
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: user.id,
-    email,
-    display_name: displayName,
-    avatar_url: avatarUrl,
-    credits_balance: 5
-  });
+  const { data: existingTransaction, error: existingTransactionError } =
+    await admin
+      .from("credit_transactions")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("reason", "signup_bonus")
+      .maybeSingle();
 
-  if (profileError) {
-    throw profileError;
+  if (existingTransactionError) {
+    throw existingTransactionError;
+  }
+
+  if (existingTransaction) {
+    return;
   }
 
   const { error: transactionError } = await admin
@@ -45,7 +63,7 @@ export async function ensureProfile(user: User) {
       reason: "signup_bonus"
     });
 
-  if (transactionError) {
+  if (transactionError && !isUniqueViolation(transactionError)) {
     throw transactionError;
   }
 }
