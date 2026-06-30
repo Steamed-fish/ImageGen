@@ -1,11 +1,19 @@
-import { defineConfig, devices } from "@playwright/test";
+import { existsSync } from "node:fs";
+import { chromium, defineConfig, devices } from "@playwright/test";
 
 const dummySupabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
   "eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNjAwMDAwMDAwLCJleHAiOjE5MTUzNjAwMDB9." +
   "ZHVtbXktc2lnbmF0dXJl";
+const macChromePath =
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const shouldUseLocalChrome =
+  process.platform === "darwin" &&
+  !existsSync(chromium.executablePath()) &&
+  existsSync(macChromePath);
 const browserChannel =
-  process.env.PLAYWRIGHT_CHANNEL ?? (process.platform === "darwin" ? "chrome" : undefined);
+  process.env.PLAYWRIGHT_CHANNEL ??
+  (shouldUseLocalChrome ? "chrome" : undefined);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,7 +25,7 @@ export default defineConfig({
   webServer: {
     command: "npm run dev",
     url: "http://127.0.0.1:3000",
-    reuseExistingServer: true,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "1",
     env: {
       NEXT_PUBLIC_SUPABASE_URL:
         process.env.NEXT_PUBLIC_SUPABASE_URL || "https://example.supabase.co",
