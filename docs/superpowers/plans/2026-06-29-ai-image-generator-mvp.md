@@ -8,6 +8,8 @@
 
 **Tech Stack:** Next.js 15, React 19, TypeScript, Tailwind CSS, Supabase JS/SSR, OpenAI Node SDK, Vitest, Testing Library, Playwright, Vercel.
 
+**Language Strategy Addendum:** The MVP interface is bilingual Chinese/English with Chinese as the default. The selected locale is persisted in a `prompt_studio_locale` cookie and rendered through shared dictionaries. The compiled final prompt remains English by design: prompt templates and preset fragments are English, while user-entered subject and additional requirements are preserved exactly as typed. No translation API call is included in the MVP.
+
 ---
 
 ## Source Design

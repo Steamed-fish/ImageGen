@@ -1,11 +1,14 @@
 "use client";
 
+import type { Dictionary } from "@/lib/i18n/config";
+
 type UpgradeModalProps = {
   open: boolean;
   onClose: () => void;
   onJoinWaitlist: () => Promise<void>;
   joined: boolean;
   isJoiningWaitlist: boolean;
+  labels: Dictionary["upgrade"];
 };
 
 export function UpgradeModal({
@@ -13,7 +16,8 @@ export function UpgradeModal({
   onClose,
   onJoinWaitlist,
   joined,
-  isJoiningWaitlist
+  isJoiningWaitlist,
+  labels
 }: UpgradeModalProps) {
   if (!open) {
     return null;
@@ -28,11 +32,10 @@ export function UpgradeModal({
         className="w-full max-w-sm rounded-lg bg-white p-6 shadow-soft"
       >
         <h2 id="upgrade-modal-title" className="text-xl font-semibold text-ink">
-          Upgrade coming soon
+          {labels.title}
         </h2>
         <p className="mt-3 text-sm leading-6 text-muted">
-          You have used your free credits. Join the waitlist and we will let you
-          know when paid plans are available.
+          {labels.description}
         </p>
         <div className="mt-5 flex gap-3">
           <button
@@ -40,7 +43,7 @@ export function UpgradeModal({
             onClick={onClose}
             className="flex-1 rounded-md border border-line px-4 py-2 text-sm font-medium text-ink"
           >
-            Close
+            {labels.close}
           </button>
           <button
             type="button"
@@ -48,7 +51,7 @@ export function UpgradeModal({
             disabled={joined || isJoiningWaitlist}
             className="flex-1 rounded-md bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            {joined ? "Joined" : "Join waitlist"}
+            {joined ? labels.joined : labels.join}
           </button>
         </div>
       </div>

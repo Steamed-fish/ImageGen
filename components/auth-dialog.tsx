@@ -1,8 +1,15 @@
 "use client";
 
 import { signInWithGoogle } from "@/lib/auth/actions";
+import type { Dictionary } from "@/lib/i18n/config";
 
-export function AuthDialog({ open }: { open: boolean }) {
+export function AuthDialog({
+  open,
+  labels
+}: {
+  open: boolean;
+  labels: Dictionary["authDialog"];
+}) {
   if (!open) {
     return null;
   }
@@ -18,15 +25,14 @@ export function AuthDialog({ open }: { open: boolean }) {
         className="w-full max-w-sm rounded-lg bg-white p-6 shadow-soft"
       >
         <h2 id="auth-dialog-title" className="text-xl font-semibold text-ink">
-          Sign in to generate
+          {labels.title}
         </h2>
         <p className="mt-3 text-sm leading-6 text-muted">
-          You can prepare the prompt before signing in. Google login is required
-          when you create the image.
+          {labels.description}
         </p>
         <form action={signInAction}>
           <button className="mt-5 w-full rounded-md bg-ink px-4 py-2 text-sm font-medium text-white">
-            Continue with Google
+            {labels.continueWithGoogle}
           </button>
         </form>
       </div>

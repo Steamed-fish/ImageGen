@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { HistoryGrid, type HistoryItem } from "@/components/history-grid";
+import { getDictionary } from "@/lib/i18n/config";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -34,6 +36,8 @@ async function createSignedImageUrl(
 }
 
 export default async function HistoryPage() {
+  const locale = await getRequestLocale();
+  const dictionary = getDictionary(locale);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user }
@@ -62,9 +66,13 @@ export default async function HistoryPage() {
   return (
     <main className="min-h-screen bg-canvas px-6 py-8 text-ink">
       <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-semibold">Generation history</h1>
+        <h1 className="text-3xl font-semibold">{dictionary.history.title}</h1>
         <div className="mt-6">
-          <HistoryGrid items={items} />
+          <HistoryGrid
+            items={items}
+            locale={locale}
+            labels={dictionary.history}
+          />
         </div>
       </div>
     </main>

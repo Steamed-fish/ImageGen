@@ -1,10 +1,27 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GeneratorForm } from "@/components/generator-form";
+import { getDictionary, type Locale } from "@/lib/i18n/config";
 
 vi.mock("@/lib/auth/actions", () => ({
   signInWithGoogle: vi.fn()
 }));
+
+function renderGeneratorForm({
+  isLoggedIn = false,
+  locale = "en"
+}: {
+  isLoggedIn?: boolean;
+  locale?: Locale;
+} = {}) {
+  return render(
+    <GeneratorForm
+      isLoggedIn={isLoggedIn}
+      locale={locale}
+      dictionary={getDictionary(locale)}
+    />
+  );
+}
 
 describe("GeneratorForm", () => {
   beforeEach(() => {
@@ -16,7 +33,7 @@ describe("GeneratorForm", () => {
   });
 
   it("updates the prompt preview when a subject is entered", () => {
-    render(<GeneratorForm isLoggedIn={false} />);
+    renderGeneratorForm();
 
     expect(
       screen.getByText("Enter a subject to preview the professional prompt.")
@@ -31,8 +48,26 @@ describe("GeneratorForm", () => {
     ).toBeInTheDocument();
   });
 
+  it("renders Chinese UI while keeping the compiled prompt template in English", () => {
+    renderGeneratorForm({ locale: "zh" });
+
+    expect(screen.getByRole("heading", { name: "创建图片" })).toBeInTheDocument();
+    expect(screen.getByLabelText("主题")).toBeInTheDocument();
+    expect(
+      screen.getByText("输入主题后预览专业英文 prompt。")
+    ).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("主题"), {
+      target: { value: "咖啡品牌发布海报" }
+    });
+
+    expect(
+      screen.getByText(/Create a poster about 咖啡品牌发布海报/)
+    ).toBeInTheDocument();
+  });
+
   it("opens sign-in-required UX when anonymous users click Generate", () => {
-    render(<GeneratorForm isLoggedIn={false} />);
+    renderGeneratorForm();
 
     fireEvent.change(screen.getByLabelText(/subject/i), {
       target: { value: "a coffee brand launch poster" }
@@ -62,7 +97,7 @@ describe("GeneratorForm", () => {
       )
     );
 
-    render(<GeneratorForm isLoggedIn={true} />);
+    renderGeneratorForm({ isLoggedIn: true });
 
     fireEvent.change(screen.getByLabelText(/subject/i), {
       target: { value: "a coffee brand launch poster" }
@@ -89,7 +124,7 @@ describe("GeneratorForm", () => {
       })
     );
 
-    render(<GeneratorForm isLoggedIn={true} />);
+    renderGeneratorForm({ isLoggedIn: true });
 
     fireEvent.change(screen.getByLabelText(/subject/i), {
       target: { value: "a coffee brand launch poster" }
@@ -129,7 +164,7 @@ describe("GeneratorForm", () => {
         })
       );
 
-    render(<GeneratorForm isLoggedIn={true} />);
+    renderGeneratorForm({ isLoggedIn: true });
 
     fireEvent.change(screen.getByLabelText(/subject/i), {
       target: { value: "a coffee brand launch poster" }
@@ -167,7 +202,7 @@ describe("GeneratorForm", () => {
       )
       .mockReturnValue(waitlistPromise);
 
-    render(<GeneratorForm isLoggedIn={true} />);
+    renderGeneratorForm({ isLoggedIn: true });
 
     fireEvent.change(screen.getByLabelText(/subject/i), {
       target: { value: "a coffee brand launch poster" }

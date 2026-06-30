@@ -14,17 +14,24 @@ import {
   WHITESPACE
 } from "@/lib/generation/options";
 import { compilePrompt } from "@/lib/generation/prompt";
+import type { Dictionary, Locale } from "@/lib/i18n/config";
 import type { GenerationInput } from "@/lib/types";
 
 type GeneratorFormProps = {
   isLoggedIn: boolean;
+  locale: Locale;
+  dictionary: Dictionary;
 };
 
 type GenerateResponse =
   | { imageUrl: string }
-  | { error: string; code?: "UNAUTHENTICATED" | "INSUFFICIENT_CREDITS" };
+  | { error: string; code?: string };
 
-export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
+export function GeneratorForm({
+  isLoggedIn,
+  locale,
+  dictionary
+}: GeneratorFormProps) {
   const [input, setInput] = useState<GenerationInput>(DEFAULT_GENERATION_INPUT);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,11 +44,24 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
 
   const prompt = useMemo(() => {
     if (!input.subject.trim()) {
-      return "Enter a subject to preview the professional prompt.";
+      return dictionary.generator.emptyPrompt;
     }
 
     return compilePrompt(input);
-  }, [input]);
+  }, [dictionary.generator.emptyPrompt, input]);
+
+  function errorMessageFor(payload: Extract<GenerateResponse, { error: string }>) {
+    if (
+      payload.code &&
+      Object.prototype.hasOwnProperty.call(dictionary.apiErrors, payload.code)
+    ) {
+      return dictionary.apiErrors[
+        payload.code as keyof Dictionary["apiErrors"]
+      ];
+    }
+
+    return payload.error || dictionary.generator.fallbackError;
+  }
 
   function update<K extends keyof GenerationInput>(
     key: K,
@@ -54,7 +74,7 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
     setError(null);
 
     if (!isLoggedIn) {
-      setError("Please sign in with Google to generate an image.");
+      setError(dictionary.generator.signInRequired);
       setAuthOpen(true);
       return;
     }
@@ -74,13 +94,17 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
         if ("code" in payload && payload.code === "INSUFFICIENT_CREDITS") {
           setUpgradeOpen(true);
         }
-        setError("error" in payload ? payload.error : "Generation failed.");
+        setError(
+          "error" in payload
+            ? errorMessageFor(payload)
+            : dictionary.generator.fallbackError
+        );
         return;
       }
 
       setImageUrl(payload.imageUrl);
     } catch {
-      setError("We couldn't generate your image. Please try again.");
+      setError(dictionary.generator.genericError);
     } finally {
       setIsLoading(false);
     }
@@ -114,10 +138,13 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
     <>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
         <section className="rounded-lg border border-line bg-white p-5">
-          <h1 className="text-2xl font-semibold text-ink">Create an image</h1>
+          <h1 className="text-2xl font-semibold text-ink">
+            {dictionary.generator.title}
+          </h1>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <Select
-              label="Image type"
+              label={dictionary.generator.fields.imageType}
+              locale={locale}
               value={input.imageType}
               options={IMAGE_TYPES}
               onChange={(value) =>
@@ -125,7 +152,8 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
               }
             />
             <Select
-              label="Aspect ratio"
+              label={dictionary.generator.fields.aspectRatio}
+              locale={locale}
               value={input.aspectRatio}
               options={ASPECT_RATIOS}
               onChange={(value) =>
@@ -133,7 +161,8 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
               }
             />
             <Select
-              label="Style"
+              label={dictionary.generator.fields.style}
+              locale={locale}
               value={input.style}
               options={VISUAL_STYLES}
               onChange={(value) =>
@@ -141,7 +170,8 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
               }
             />
             <Select
-              label="Scene"
+              label={dictionary.generator.fields.scene}
+              locale={locale}
               value={input.scene}
               options={SCENES}
               onChange={(value) =>
@@ -150,7 +180,8 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
             />
             <div className="sm:col-span-2">
               <Select
-                label="Whitespace"
+                label={dictionary.generator.fields.whitespace}
+                locale={locale}
                 value={input.whitespace}
                 options={WHITESPACE}
                 onChange={(value) =>
@@ -160,17 +191,17 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
             </div>
           </div>
           <label className="mt-5 block text-sm font-medium text-ink">
-            Subject
+            {dictionary.generator.fields.subject}
             <input
               value={input.subject}
               onChange={(event) => update("subject", event.target.value)}
               maxLength={180}
               className="mt-2 w-full rounded-md border border-line px-3 py-2"
-              placeholder="a coffee brand launch poster"
+              placeholder={dictionary.generator.placeholders.subject}
             />
           </label>
           <label className="mt-5 block text-sm font-medium text-ink">
-            Additional requirements
+            {dictionary.generator.fields.extraRequirements}
             <textarea
               value={input.extraRequirements}
               onChange={(event) =>
@@ -178,7 +209,7 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
               }
               maxLength={500}
               className="mt-2 min-h-28 w-full rounded-md border border-line px-3 py-2"
-              placeholder="Mood, colors, objects, audience, details to avoid"
+              placeholder={dictionary.generator.placeholders.extraRequirements}
             />
           </label>
           <button
@@ -187,21 +218,27 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
             disabled={isLoading || !input.subject.trim()}
             className="mt-6 rounded-md bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Generate 1 image
+            {dictionary.generator.submit}
           </button>
         </section>
         <div className="grid gap-6">
-          <PromptPreview prompt={prompt} />
-          <ResultPanel imageUrl={imageUrl} error={error} isLoading={isLoading} />
+          <PromptPreview prompt={prompt} labels={dictionary.promptPreview} />
+          <ResultPanel
+            imageUrl={imageUrl}
+            error={error}
+            isLoading={isLoading}
+            labels={dictionary.result}
+          />
         </div>
       </div>
-      <AuthDialog open={authOpen} />
+      <AuthDialog open={authOpen} labels={dictionary.authDialog} />
       <UpgradeModal
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         onJoinWaitlist={joinWaitlist}
         joined={joined}
         isJoiningWaitlist={isJoiningWaitlist}
+        labels={dictionary.upgrade}
       />
     </>
   );
@@ -209,13 +246,15 @@ export function GeneratorForm({ isLoggedIn }: GeneratorFormProps) {
 
 function Select({
   label,
+  locale,
   value,
   options,
   onChange
 }: {
   label: string;
+  locale: Locale;
   value: string;
-  options: Record<string, { label: string }>;
+  options: Record<string, { label: Record<Locale, string> }>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -228,7 +267,7 @@ function Select({
       >
         {Object.entries(options).map(([key, option]) => (
           <option key={key} value={key}>
-            {option.label}
+            {option.label[locale]}
           </option>
         ))}
       </select>

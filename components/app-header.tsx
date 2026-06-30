@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { AccountMenu } from "@/components/account-menu";
 import { CreditBadge } from "@/components/credit-badge";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getDictionary } from "@/lib/i18n/config";
+import { getRequestLocale } from "@/lib/i18n/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function AppHeader() {
+  const locale = await getRequestLocale();
+  const dictionary = getDictionary(locale);
   const supabase = await createSupabaseServerClient();
   const {
     data: { user }
@@ -32,15 +37,22 @@ export async function AppHeader() {
         </Link>
         <div className="order-last flex w-full items-center gap-4 sm:order-none sm:w-auto">
           <Link href="/generate" className="text-sm text-muted hover:text-ink">
-            Generate
+            {dictionary.nav.generate}
           </Link>
           <Link href="/history" className="text-sm text-muted hover:text-ink">
-            History
+            {dictionary.nav.history}
           </Link>
         </div>
         <div className="ml-auto flex min-w-0 items-center justify-end gap-2 sm:gap-4">
-          <CreditBadge credits={credits} />
-          <AccountMenu email={user?.email ?? null} />
+          <LanguageSwitcher locale={locale} labels={dictionary.language} />
+          <CreditBadge
+            credits={credits}
+            label={dictionary.account.credits}
+          />
+          <AccountMenu
+            email={user?.email ?? null}
+            labels={dictionary.account}
+          />
         </div>
       </nav>
     </header>

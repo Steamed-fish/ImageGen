@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { HistoryGrid } from "@/components/history-grid";
+import { getDictionary } from "@/lib/i18n/config";
 
 vi.mock("next/image", () => ({
   default: (props: {
@@ -30,7 +31,13 @@ const item = {
 
 describe("HistoryGrid", () => {
   it("renders an empty state when there are no items", () => {
-    render(<HistoryGrid items={[]} />);
+    render(
+      <HistoryGrid
+        items={[]}
+        locale="en"
+        labels={getDictionary("en").history}
+      />
+    );
 
     expect(screen.getByText("No generated images yet")).toBeInTheDocument();
     expect(
@@ -41,14 +48,20 @@ describe("HistoryGrid", () => {
   });
 
   it("renders history item details and an open link when an image URL exists", () => {
-    render(<HistoryGrid items={[item]} />);
+    render(
+      <HistoryGrid
+        items={[item]}
+        locale="zh"
+        labels={getDictionary("zh").history}
+      />
+    );
 
     expect(screen.getByAltText(item.subject)).toBeInTheDocument();
-    expect(screen.getByText("poster")).toBeInTheDocument();
+    expect(screen.getByText("海报")).toBeInTheDocument();
     expect(screen.getByText(item.subject)).toBeInTheDocument();
     expect(screen.getByText(item.compiled_prompt)).toBeInTheDocument();
 
-    const link = screen.getByRole("link", { name: /open image/i });
+    const link = screen.getByRole("link", { name: "打开图片" });
     expect(link).toHaveAttribute("href", item.imageUrl);
   });
 });

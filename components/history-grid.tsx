@@ -1,4 +1,7 @@
 import Image from "next/image";
+import { IMAGE_TYPES } from "@/lib/generation/options";
+import type { Dictionary, Locale } from "@/lib/i18n/config";
+import type { ImageType } from "@/lib/types";
 
 export type HistoryItem = {
   id: string;
@@ -13,18 +16,27 @@ export type HistoryItem = {
 
 type HistoryGridProps = {
   items: HistoryItem[];
+  locale: Locale;
+  labels: Dictionary["history"];
 };
 
-export function HistoryGrid({ items }: HistoryGridProps) {
+function imageTypeLabel(imageType: string, locale: Locale) {
+  if (imageType in IMAGE_TYPES) {
+    return IMAGE_TYPES[imageType as ImageType].label[locale];
+  }
+
+  return imageType;
+}
+
+export function HistoryGrid({ items, locale, labels }: HistoryGridProps) {
   if (items.length === 0) {
     return (
       <section className="rounded-lg border border-line bg-white p-8 text-center">
         <h2 className="text-xl font-semibold text-ink">
-          No generated images yet
+          {labels.emptyTitle}
         </h2>
         <p className="mt-3 text-sm text-muted">
-          Your completed generations will appear here after the first successful
-          run.
+          {labels.emptyDescription}
         </p>
       </section>
     );
@@ -49,12 +61,14 @@ export function HistoryGrid({ items }: HistoryGridProps) {
               />
             ) : (
               <p className="px-6 text-center text-sm text-muted">
-                Preview unavailable
+                {labels.previewUnavailable}
               </p>
             )}
           </div>
           <div className="p-4">
-            <p className="text-xs uppercase text-muted">{item.image_type}</p>
+            <p className="text-xs uppercase text-muted">
+              {imageTypeLabel(item.image_type, locale)}
+            </p>
             <h2 className="mt-2 line-clamp-2 text-base font-semibold text-ink">
               {item.subject}
             </h2>
@@ -68,7 +82,7 @@ export function HistoryGrid({ items }: HistoryGridProps) {
                 rel="noreferrer"
                 className="mt-4 inline-flex rounded-md border border-line px-3 py-2 text-sm font-medium text-ink hover:bg-canvas"
               >
-                Open image
+                {labels.openImage}
               </a>
             ) : null}
           </div>

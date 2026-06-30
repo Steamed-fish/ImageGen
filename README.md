@@ -11,6 +11,12 @@ The MVP includes the home page, generator, Supabase Google OAuth login, generati
 - OpenAI Images API with `gpt-image-2`
 - Vercel
 
+## Language Strategy
+
+The interface supports Chinese and English. Chinese is the default, and the header language switcher persists the selected locale in the `prompt_studio_locale` cookie.
+
+Compiled generation prompts are intentionally English: templates and preset prompt fragments stay in English for the OpenAI Images API, while user-entered subject and additional requirements are preserved exactly as typed. The MVP does not make an extra translation call.
+
 ## Environment Variables
 
 Copy `.env.example` to `.env.local` and fill in local or hosted values:

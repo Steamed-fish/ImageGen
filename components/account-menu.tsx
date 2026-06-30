@@ -1,11 +1,13 @@
 import { LogIn, LogOut } from "lucide-react";
 import { signInWithGoogle, signOut } from "@/lib/auth/actions";
+import type { Dictionary } from "@/lib/i18n/config";
 
 type AccountMenuProps = {
   email: string | null;
+  labels: Dictionary["account"];
 };
 
-export function AccountMenu({ email }: AccountMenuProps) {
+export function AccountMenu({ email, labels }: AccountMenuProps) {
   if (!email) {
     return (
       <form
@@ -17,7 +19,7 @@ export function AccountMenu({ email }: AccountMenuProps) {
       >
         <button className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-ink px-3 py-2 text-sm font-medium text-white sm:px-4">
           <LogIn className="h-4 w-4" />
-          Sign in
+          {labels.signIn}
         </button>
       </form>
     );
@@ -33,7 +35,7 @@ export function AccountMenu({ email }: AccountMenuProps) {
       </span>
       <button className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-line bg-white px-3 py-2 text-sm font-medium text-ink">
         <LogOut className="h-4 w-4" />
-        Sign out
+        {labels.signOut}
       </button>
     </form>
   );

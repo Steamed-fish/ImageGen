@@ -25,6 +25,12 @@ The first version explicitly excludes:
 - Reference image upload
 - Multi-model switching
 
+## Language Strategy
+
+The MVP supports a bilingual Chinese and English interface. Users can switch the interface language from the header, and the choice is persisted in a `prompt_studio_locale` cookie. Chinese is the default language.
+
+The final compiled prompt is always built from English templates and English preset prompt fragments for the OpenAI Images API. User-entered subject and additional requirements are preserved exactly as entered, so the MVP does not call a translation model or rewrite the user's free-text input.
+
 ## Product Positioning
 
 The MVP is a general AI image generation tool with a structured creation workflow. It should feel like a professional creative studio rather than a broad template marketplace or a decorative landing page.
