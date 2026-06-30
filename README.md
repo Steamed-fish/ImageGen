@@ -57,13 +57,15 @@ PLAYWRIGHT_REUSE_SERVER=1 npm run test:e2e
 
 ## Supabase Setup
 
-Apply the initial schema migration:
+Apply the initial schema migration. If you use the Supabase CLI, install it and
+link this app to a Supabase project or pass a database URL before pushing:
 
 ```bash
 supabase db push
 ```
 
-or apply `supabase/migrations/202606290001_initial_schema.sql` through your preferred Supabase workflow.
+Otherwise, apply `supabase/migrations/202606290001_initial_schema.sql` through
+the Supabase dashboard or your preferred SQL migration workflow.
 
 The migration creates:
 
