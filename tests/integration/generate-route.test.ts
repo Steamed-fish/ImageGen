@@ -17,6 +17,7 @@ const user = {
 
 const getUser = vi.fn();
 const from = vi.fn();
+const generationJobsUpdate = vi.fn();
 const rpc = vi.fn();
 const upload = vi.fn();
 const createSignedUrl = vi.fn();
@@ -52,6 +53,7 @@ function tableMock({
   return (table: TableName) => {
     if (table === "generation_jobs") {
       return {
+        update: generationJobsUpdate,
         select: vi.fn((columns?: string) => {
           if (columns === "id") {
             return {
@@ -109,6 +111,16 @@ async function importRoute(dependencies: RouteDependencies = {}) {
 
   getUser.mockResolvedValue({ data: { user }, error: null });
   from.mockImplementation(tableMock(dependencies));
+  generationJobsUpdate.mockReturnValue({
+    eq: vi.fn(() => ({
+      eq: vi.fn(() => ({
+        lt: vi.fn().mockResolvedValue({
+          data: null,
+          error: null
+        })
+      }))
+    }))
+  });
   upload.mockResolvedValue({ data: { path: "stored/path.png" }, error: null });
   createSignedUrl.mockResolvedValue({
     data: { signedUrl: "https://example.com/generated.png" },
@@ -211,6 +223,61 @@ describe("POST /api/generate", () => {
         "Create a poster about a coffee brand launch poster"
       )
     });
+  });
+
+  it("marks stale processing jobs failed before starting a new generation", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-30T10:00:00.000Z"));
+    const updateLt = vi.fn().mockResolvedValue({ data: null, error: null });
+    const updateSecondEq = vi.fn(() => ({ lt: updateLt }));
+    const updateFirstEq = vi.fn(() => ({ eq: updateSecondEq }));
+    generationJobsUpdate.mockReturnValueOnce({ eq: updateFirstEq });
+
+    try {
+      const { POST } = await importRoute();
+
+      const response = await POST(createJsonRequest(validRequestBody));
+
+      expect(response.status).toBe(200);
+      expect(generationJobsUpdate).toHaveBeenCalledWith({
+        status: "failed",
+        error_message: "Generation expired before completion.",
+        completed_at: "2026-06-30T10:00:00.000Z"
+      });
+      expect(updateFirstEq).toHaveBeenCalledWith("user_id", user.id);
+      expect(updateSecondEq).toHaveBeenCalledWith("status", "processing");
+      expect(updateLt).toHaveBeenCalledWith(
+        "created_at",
+        "2026-06-30T09:45:00.000Z"
+      );
+      expect(generateImageBytes).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("returns 500 when stale processing job cleanup fails", async () => {
+    const updateLt = vi.fn().mockResolvedValue({
+      data: null,
+      error: new Error("cleanup failed")
+    });
+    generationJobsUpdate.mockReturnValueOnce({
+      eq: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          lt: updateLt
+        }))
+      }))
+    });
+    const { POST } = await importRoute();
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload).toMatchObject({
+      code: "STALE_GENERATION_CLEANUP_FAILED"
+    });
+    expect(generateImageBytes).not.toHaveBeenCalled();
   });
 
   it("marks the job failed and does not charge credits when generation fails", async () => {

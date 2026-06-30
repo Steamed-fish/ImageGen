@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const GENERATED_IMAGES_BUCKET = "generated-images";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
+const STALE_PROCESSING_JOB_AGE_MS = 15 * 60 * 1000;
 
 function jsonError(status: number, code: string, error: string) {
   return NextResponse.json({ error, code }, { status });
@@ -41,6 +42,29 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdminClient();
+  const cleanupCompletedAt = new Date();
+  const staleProcessingCutoff = new Date(
+    cleanupCompletedAt.getTime() - STALE_PROCESSING_JOB_AGE_MS
+  ).toISOString();
+  const { error: staleCleanupError } = await admin
+    .from("generation_jobs")
+    .update({
+      status: "failed",
+      error_message: "Generation expired before completion.",
+      completed_at: cleanupCompletedAt.toISOString()
+    })
+    .eq("user_id", user.id)
+    .eq("status", "processing")
+    .lt("created_at", staleProcessingCutoff);
+
+  if (staleCleanupError) {
+    return jsonError(
+      500,
+      "STALE_GENERATION_CLEANUP_FAILED",
+      "We could not recover previous unfinished generations."
+    );
+  }
+
   const { data: processingJob, error: processingJobError } = await admin
     .from("generation_jobs")
     .select("id")
