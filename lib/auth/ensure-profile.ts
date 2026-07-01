@@ -1,6 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
+const STARTER_CREDITS = 10;
+
 function isUniqueViolation(error: { code?: string } | null) {
   return error?.code === "23505";
 }
@@ -31,7 +33,7 @@ export async function ensureProfile(user: User) {
       email,
       display_name: displayName,
       avatar_url: avatarUrl,
-      credits_balance: 5
+      credits_balance: STARTER_CREDITS
     });
 
     if (profileError && !isUniqueViolation(profileError)) {
@@ -59,7 +61,7 @@ export async function ensureProfile(user: User) {
     .from("credit_transactions")
     .insert({
       user_id: user.id,
-      amount: 5,
+      amount: STARTER_CREDITS,
       reason: "signup_bonus"
     });
 

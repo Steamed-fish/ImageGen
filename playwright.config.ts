@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { chromium, defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 const dummySupabaseAnonKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9." +
@@ -9,7 +9,6 @@ const macChromePath =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const shouldUseLocalChrome =
   process.platform === "darwin" &&
-  !existsSync(chromium.executablePath()) &&
   existsSync(macChromePath);
 const browserChannel =
   process.env.PLAYWRIGHT_CHANNEL ??
@@ -17,16 +16,18 @@ const browserChannel =
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  outputDir: "output/playwright/test-results",
   timeout: 30_000,
   use: {
     baseURL: "http://127.0.0.1:3000",
     trace: "on-first-retry"
   },
   webServer: {
-    command: "npm run dev",
+    command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
     url: "http://127.0.0.1:3000",
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "1",
     env: {
+      E2E_TEST_MODE: "1",
       NEXT_PUBLIC_SUPABASE_URL:
         process.env.NEXT_PUBLIC_SUPABASE_URL || "https://example.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY:

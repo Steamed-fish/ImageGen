@@ -1,4 +1,8 @@
 import Image from "next/image";
+import { ExternalLink, ImagePlus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { IMAGE_TYPES } from "@/lib/generation/options";
 import type { Dictionary, Locale } from "@/lib/i18n/config";
 import type { ImageType } from "@/lib/types";
@@ -28,36 +32,48 @@ function imageTypeLabel(imageType: string, locale: Locale) {
   return imageType;
 }
 
+function formatDate(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
+    month: "short",
+    day: "numeric"
+  }).format(new Date(value));
+}
+
 export function HistoryGrid({ items, locale, labels }: HistoryGridProps) {
   if (items.length === 0) {
     return (
-      <section className="rounded-lg border border-line bg-white p-8 text-center">
-        <h2 className="text-xl font-semibold text-ink">
+      <Card className="overflow-hidden p-8 text-center sm:p-12">
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10 text-moss">
+          <ImagePlus aria-hidden="true" className="h-7 w-7" />
+        </span>
+        <h2 className="mt-5 text-2xl font-semibold text-ink">
           {labels.emptyTitle}
         </h2>
-        <p className="mt-3 text-sm text-muted">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-muted">
           {labels.emptyDescription}
         </p>
-      </section>
+      </Card>
     );
   }
 
   return (
-    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      {items.map((item, index) => (
         <article
           key={item.id}
-          className="overflow-hidden rounded-lg border border-line bg-white"
+          className={`group overflow-hidden rounded-2xl border border-line bg-white shadow-soft transition duration-300 hover:-translate-y-1 hover:shadow-panel ${
+            index % 5 === 0 ? "sm:col-span-2 xl:col-span-1" : ""
+          }`}
         >
-          <div className="relative flex aspect-square items-center justify-center overflow-hidden bg-canvas">
+          <div className="relative flex aspect-[4/5] items-center justify-center overflow-hidden bg-cloud">
             {item.imageUrl ? (
               <Image
                 src={item.imageUrl}
                 alt={item.subject}
                 fill
                 unoptimized
-                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                className="object-cover"
+                sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                className="object-cover transition duration-500 group-hover:scale-105"
               />
             ) : (
               <p className="px-6 text-center text-sm text-muted">
@@ -65,25 +81,28 @@ export function HistoryGrid({ items, locale, labels }: HistoryGridProps) {
               </p>
             )}
           </div>
-          <div className="p-4">
-            <p className="text-xs uppercase text-muted">
-              {imageTypeLabel(item.image_type, locale)}
-            </p>
-            <h2 className="mt-2 line-clamp-2 text-base font-semibold text-ink">
+          <div className="p-5">
+            <div className="flex items-center justify-between gap-3">
+              <Badge variant="accent">
+                {imageTypeLabel(item.image_type, locale)}
+              </Badge>
+              <span className="text-xs font-medium text-muted">
+                {formatDate(item.created_at, locale)}
+              </span>
+            </div>
+            <h2 className="mt-4 line-clamp-2 text-lg font-semibold text-ink">
               {item.subject}
             </h2>
             <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted">
               {item.compiled_prompt}
             </p>
             {item.imageUrl ? (
-              <a
-                href={item.imageUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex rounded-md border border-line px-3 py-2 text-sm font-medium text-ink hover:bg-canvas"
-              >
-                {labels.openImage}
-              </a>
+              <Button asChild variant="outline" size="sm" className="mt-5">
+                <a href={item.imageUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink aria-hidden="true" className="h-4 w-4" />
+                  {labels.openImage}
+                </a>
+              </Button>
             ) : null}
           </div>
         </article>

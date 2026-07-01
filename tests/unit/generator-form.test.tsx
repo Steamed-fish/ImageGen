@@ -3,8 +3,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GeneratorForm } from "@/components/generator-form";
 import { getDictionary, type Locale } from "@/lib/i18n/config";
 
+const routerRefresh = vi.hoisted(() => vi.fn());
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: routerRefresh
+  })
+}));
+
 vi.mock("@/lib/auth/actions", () => ({
-  signInWithGoogle: vi.fn()
+  signInWithEmail: vi.fn(),
+  signInWithGoogle: vi.fn(),
+  signUpWithEmail: vi.fn()
 }));
 
 function renderGeneratorForm({
@@ -25,6 +35,7 @@ function renderGeneratorForm({
 
 describe("GeneratorForm", () => {
   beforeEach(() => {
+    routerRefresh.mockClear();
     vi.stubGlobal("fetch", vi.fn());
   });
 
@@ -78,10 +89,13 @@ describe("GeneratorForm", () => {
       screen.getByRole("dialog", { name: /sign in to generate/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Please sign in with Google to generate an image.")
+      screen.getByText("Please sign in to generate an image.")
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /continue with google/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /sign in with email/i })
     ).toBeInTheDocument();
   });
 
@@ -181,6 +195,31 @@ describe("GeneratorForm", () => {
       expect(screen.getByText("Generation failed.")).toBeInTheDocument();
     });
     expect(screen.queryByAltText("Generated result")).not.toBeInTheDocument();
+  });
+
+  it("refreshes server-rendered account data after a successful generation", async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ imageUrl: "https://example.com/result.png" }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        }
+      )
+    );
+
+    renderGeneratorForm({ isLoggedIn: true });
+
+    fireEvent.change(screen.getByLabelText(/subject/i), {
+      target: { value: "a coffee brand launch poster" }
+    });
+    fireEvent.click(screen.getByRole("button", { name: /generate 1 image/i }));
+
+    await waitFor(() => {
+      expect(screen.getByAltText("Generated result")).toBeInTheDocument();
+    });
+    expect(routerRefresh).toHaveBeenCalledTimes(1);
   });
 
   it("prevents duplicate waitlist requests while joining is in flight", async () => {

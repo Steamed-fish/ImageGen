@@ -10,7 +10,7 @@ export function CreditBadge({
   }
 
   return (
-    <span className="inline-flex shrink-0 whitespace-nowrap rounded border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink sm:px-3 sm:text-sm">
+    <span className="inline-flex shrink-0 whitespace-nowrap rounded-full border border-accent/20 bg-accent/10 px-2.5 py-1 text-xs font-semibold text-moss sm:px-3 sm:text-sm">
       {credits} {label}
     </span>
   );

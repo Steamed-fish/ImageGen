@@ -1,5 +1,12 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle
+} from "@/components/ui/dialog";
 import type { Dictionary } from "@/lib/i18n/config";
 
 type UpgradeModalProps = {
@@ -24,37 +31,33 @@ export function UpgradeModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="upgrade-modal-title"
-        className="w-full max-w-sm rounded-lg bg-white p-6 shadow-soft"
-      >
-        <h2 id="upgrade-modal-title" className="text-xl font-semibold text-ink">
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogTitle className="text-xl font-semibold text-ink">
           {labels.title}
-        </h2>
-        <p className="mt-3 text-sm leading-6 text-muted">
+        </DialogTitle>
+        <DialogDescription className="mt-3 text-sm leading-6 text-muted">
           {labels.description}
-        </p>
+        </DialogDescription>
         <div className="mt-5 flex gap-3">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-md border border-line px-4 py-2 text-sm font-medium text-ink"
+            variant="outline"
+            className="flex-1"
           >
             {labels.close}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onJoinWaitlist}
             disabled={joined || isJoiningWaitlist}
-            className="flex-1 rounded-md bg-ink px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="flex-1"
           >
             {joined ? labels.joined : labels.join}
-          </button>
+          </Button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

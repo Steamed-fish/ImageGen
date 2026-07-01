@@ -26,7 +26,7 @@ export function LanguageSwitcher({ locale, labels }: LanguageSwitcherProps) {
     <div
       role="group"
       aria-label={labels.label}
-      className="inline-flex shrink-0 rounded-md border border-line bg-white p-0.5"
+      className="inline-flex shrink-0 rounded-xl border border-line bg-white p-0.5 shadow-sm"
     >
       {LOCALES.map((option) => (
         <button
@@ -34,7 +34,7 @@ export function LanguageSwitcher({ locale, labels }: LanguageSwitcherProps) {
           type="button"
           aria-pressed={option === locale}
           onClick={() => switchLocale(option)}
-          className={`rounded px-2.5 py-1.5 text-xs font-medium transition ${
+          className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
             option === locale
               ? "bg-ink text-white"
               : "text-muted hover:bg-canvas hover:text-ink"

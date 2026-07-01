@@ -42,7 +42,7 @@ describe("HistoryGrid", () => {
     expect(screen.getByText("No generated images yet")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Your completed generations will appear here after the first successful run."
+        "Your completed work will appear here after the first successful run."
       )
     ).toBeInTheDocument();
   });

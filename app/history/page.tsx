@@ -64,10 +64,22 @@ export default async function HistoryPage() {
   );
 
   return (
-    <main className="min-h-screen bg-canvas px-6 py-8 text-ink">
-      <div className="mx-auto max-w-6xl">
-        <h1 className="text-3xl font-semibold">{dictionary.history.title}</h1>
-        <div className="mt-6">
+    <main className="min-h-screen px-4 py-8 text-ink sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        <section className="mb-8 rounded-2xl border border-line bg-white/80 p-6 shadow-soft backdrop-blur">
+          <p className="text-sm font-semibold text-moss">
+            {locale === "zh" ? "你的生成资产" : "Your creative assets"}
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">
+            {dictionary.history.title}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted sm:text-base">
+            {locale === "zh"
+              ? "成功生成的图片会自动保存到这里，方便复用 prompt 和打开原图。"
+              : "Completed images are saved here, ready for prompt reuse and asset review."}
+          </p>
+        </section>
+        <div>
           <HistoryGrid
             items={items}
             locale={locale}

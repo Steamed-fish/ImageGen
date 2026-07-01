@@ -8,7 +8,6 @@ import { getDictionary } from "@/lib/i18n/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 vi.mock("@/lib/auth/actions", () => ({
-  signInWithGoogle: vi.fn(),
   signOut: vi.fn()
 }));
 
@@ -26,9 +25,10 @@ describe("account UI", () => {
   it("renders a sign-in action for anonymous visitors", () => {
     render(<AccountMenu email={null} labels={getDictionary("en").account} />);
 
-    expect(
-      screen.getByRole("button", { name: /sign in/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /sign in/i })).toHaveAttribute(
+      "href",
+      "/login?next=%2Fgenerate"
+    );
   });
 
   it("renders the user email and sign-out action for signed-in users", () => {
@@ -88,7 +88,7 @@ describe("account UI", () => {
 
     expect(nav).toHaveClass("flex-wrap", "gap-y-3");
     expect(linkRow).toHaveClass("order-last", "w-full", "sm:w-auto");
-    expect(screen.getByRole("button", { name: "登录" })).toHaveClass(
+    expect(screen.getByRole("link", { name: "登录" })).toHaveClass(
       "shrink-0"
     );
     expect(screen.getByRole("button", { name: "中文" })).toHaveAttribute(

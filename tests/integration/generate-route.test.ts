@@ -146,7 +146,7 @@ async function importRoute(dependencies: RouteDependencies = {}) {
       }
     }))
   }));
-  vi.doMock("@/lib/generation/openai", () => ({
+  vi.doMock("@/lib/generation/providers", () => ({
     generateImageBytes
   }));
 
@@ -301,5 +301,66 @@ describe("POST /api/generate", () => {
       "complete_generation_and_charge",
       expect.anything()
     );
+  });
+
+  it("returns 504 when OpenAI image generation times out", async () => {
+    const { POST } = await importRoute();
+    generateImageBytes.mockRejectedValueOnce(new Error("Request timed out."));
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(504);
+    expect(payload).toMatchObject({
+      code: "OPENAI_TIMEOUT"
+    });
+    expect(rpc).toHaveBeenCalledWith("mark_generation_failed", {
+      p_user_id: user.id,
+      p_generation_id: "generation-id",
+      p_error_message: "Request timed out."
+    });
+  });
+
+  it("returns 503 when the OpenAI account billing hard limit is reached", async () => {
+    const { POST } = await importRoute();
+    generateImageBytes.mockRejectedValueOnce({
+      message: "Billing hard limit has been reached.",
+      code: "billing_hard_limit_reached",
+      type: "billing_limit_user_error"
+    });
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload).toMatchObject({
+      code: "OPENAI_BILLING_LIMIT"
+    });
+    expect(rpc).toHaveBeenCalledWith("mark_generation_failed", {
+      p_user_id: user.id,
+      p_generation_id: "generation-id",
+      p_error_message: "Billing hard limit has been reached."
+    });
+  });
+
+  it("returns 503 when the configured image provider is missing credentials", async () => {
+    const { POST } = await importRoute();
+    generateImageBytes.mockRejectedValueOnce({
+      message: "ZHIPU_API_KEY is required when IMAGE_PROVIDER is zhipu.",
+      code: "IMAGE_PROVIDER_CONFIGURATION"
+    });
+
+    const response = await POST(createJsonRequest(validRequestBody));
+    const payload = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(payload).toMatchObject({
+      code: "IMAGE_PROVIDER_CONFIGURATION"
+    });
+    expect(rpc).toHaveBeenCalledWith("mark_generation_failed", {
+      p_user_id: user.id,
+      p_generation_id: "generation-id",
+      p_error_message: "ZHIPU_API_KEY is required when IMAGE_PROVIDER is zhipu."
+    });
   });
 });

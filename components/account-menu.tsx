@@ -1,5 +1,7 @@
 import { LogIn, LogOut } from "lucide-react";
-import { signInWithGoogle, signOut } from "@/lib/auth/actions";
+import Link from "next/link";
+import { signOut } from "@/lib/auth/actions";
+import { Button } from "@/components/ui/button";
 import type { Dictionary } from "@/lib/i18n/config";
 
 type AccountMenuProps = {
@@ -10,18 +12,12 @@ type AccountMenuProps = {
 export function AccountMenu({ email, labels }: AccountMenuProps) {
   if (!email) {
     return (
-      <form
-        className="shrink-0"
-        action={async () => {
-          "use server";
-          await signInWithGoogle("/generate");
-        }}
-      >
-        <button className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-ink px-3 py-2 text-sm font-medium text-white sm:px-4">
+      <Button asChild size="sm" className="shrink-0">
+        <Link href="/login?next=%2Fgenerate">
           <LogIn className="h-4 w-4" />
           {labels.signIn}
-        </button>
-      </form>
+        </Link>
+      </Button>
     );
   }
 
@@ -33,10 +29,10 @@ export function AccountMenu({ email, labels }: AccountMenuProps) {
       <span className="min-w-0 max-w-20 truncate text-sm text-muted sm:max-w-48">
         {email}
       </span>
-      <button className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md border border-line bg-white px-3 py-2 text-sm font-medium text-ink">
+      <Button variant="outline" size="sm" className="shrink-0">
         <LogOut className="h-4 w-4" />
         {labels.signOut}
-      </button>
+      </Button>
     </form>
   );
 }

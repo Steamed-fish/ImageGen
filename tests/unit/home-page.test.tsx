@@ -8,56 +8,52 @@ describe("HomePage", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "结构化 AI 图片生成，产出更精致的创意作品。"
+        name: "不会写 prompt，也能生成专业图片。"
       })
     ).toBeInTheDocument();
 
-    expect(screen.getByText("Prompt Studio")).toBeInTheDocument();
+    expect(screen.getAllByText("Prompt Studio").length).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByText(/选择图片类型、比例、风格、场景和留白/)
+      screen.getByText(/选择创意参数和主题/)
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("link", { name: /开始生成/ })
+      screen.getAllByRole("link", { name: /开始生成/ })[0]
     ).toHaveAttribute("href", "/generate");
-    expect(screen.getByRole("link", { name: /查看历史/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /查看作品库/ })).toHaveAttribute(
       "href",
       "/history"
     );
 
-    expect(screen.getByText("生成器预览")).toBeInTheDocument();
-    expect(screen.getByText("海报")).toBeInTheDocument();
-    expect(screen.getByText("4:5")).toBeInTheDocument();
-    expect(screen.getByText("编辑风")).toBeInTheDocument();
-    expect(screen.getByText("顶部文字空间")).toBeInTheDocument();
+    expect(screen.getByText("社媒活动图")).toBeInTheDocument();
+    expect(screen.getByText("自动组装的英文 prompt")).toBeInTheDocument();
     expect(
-      screen.getByText(/Create a 4:5 editorial poster/i)
+      screen.getByText(/Create a social media image/i)
     ).toBeInTheDocument();
 
-    expect(screen.getByText("结构化选择")).toBeInTheDocument();
-    expect(screen.getByText("Prompt 组装")).toBeInTheDocument();
-    expect(screen.getByText("历史保存")).toBeInTheDocument();
+    expect(screen.getByText("选择用途")).toBeInTheDocument();
+    expect(screen.getByText("留白可控")).toBeInTheDocument();
+    expect(screen.getByText("活动海报")).toBeInTheDocument();
   });
 
   it("keeps the mobile hero compact enough to reveal the preview", async () => {
     render(await HomePage());
 
     const heading = screen.getByRole("heading", {
-      name: "结构化 AI 图片生成，产出更精致的创意作品。"
+      name: "不会写 prompt，也能生成专业图片。"
     });
     const hero = heading.closest("section");
     const intro = screen.getByText(
-      /选择图片类型、比例、风格、场景和留白/
+      /选择创意参数和主题/
     );
     const ctaGroup = screen
-      .getByRole("link", { name: /开始生成/ })
+      .getAllByRole("link", { name: /开始生成/ })[0]
       .parentElement;
-    const preview = screen.getByText("生成器预览").closest("section");
 
-    expect(hero).toHaveClass("gap-5", "px-4", "py-5");
-    expect(heading).toHaveClass("mt-4", "text-3xl", "sm:text-4xl");
-    expect(intro).toHaveClass("mt-4", "text-base", "sm:text-lg");
-    expect(ctaGroup).toHaveClass("mt-5", "flex-wrap", "gap-2");
-    expect(preview).toHaveClass("p-4", "sm:p-5");
+    expect(hero).toHaveClass("min-h-[calc(100dvh-76px)]", "gap-8", "px-4", "py-8");
+    expect(heading).toHaveClass("mt-5", "text-4xl", "sm:text-5xl");
+    expect(intro).toHaveClass("mt-5", "max-w-xl", "leading-7");
+    expect(ctaGroup).toHaveClass("mt-7", "flex-wrap", "gap-3");
+    expect(screen.getByText("自动组装的英文 prompt")).toBeInTheDocument();
   });
 });

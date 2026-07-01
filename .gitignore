@@ -8,4 +8,5 @@ node_modules/
 coverage/
 playwright-report/
 test-results/
+output/playwright/
 tsconfig.tsbuildinfo

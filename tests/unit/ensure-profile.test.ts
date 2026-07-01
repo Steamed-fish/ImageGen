@@ -68,11 +68,11 @@ describe("ensureProfile", () => {
       email: "alex@example.com",
       display_name: "Alex Example",
       avatar_url: "https://example.com/avatar.png",
-      credits_balance: 5
+      credits_balance: 10
     });
     expect(insertTransaction).toHaveBeenCalledWith({
       user_id: user.id,
-      amount: 5,
+      amount: 10,
       reason: "signup_bonus"
     });
   });
@@ -104,7 +104,7 @@ describe("ensureProfile", () => {
     expect(insertProfile).not.toHaveBeenCalled();
     expect(insertTransaction).toHaveBeenCalledWith({
       user_id: user.id,
-      amount: 5,
+      amount: 10,
       reason: "signup_bonus"
     });
   });
@@ -130,7 +130,7 @@ describe("ensureProfile", () => {
 
     expect(insertTransaction).toHaveBeenCalledWith({
       user_id: user.id,
-      amount: 5,
+      amount: 10,
       reason: "signup_bonus"
     });
   });

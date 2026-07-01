@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { generateImageBytes } from "@/lib/generation/openai";
+import { generateImageBytes } from "@/lib/generation/providers";
 import { compilePrompt } from "@/lib/generation/prompt";
 import { generationRequestSchema } from "@/lib/generation/validation";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createE2eImageDataUrl, isE2eTestMode } from "@/lib/testing/e2e";
 
 const GENERATED_IMAGES_BUCKET = "generated-images";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -13,8 +14,65 @@ function jsonError(status: number, code: string, error: string) {
   return NextResponse.json({ error, code }, { status });
 }
 
+function readErrorString(error: unknown, field: "message" | "code" | "type" | "name") {
+  if (typeof error !== "object" || error === null || !(field in error)) {
+    return null;
+  }
+
+  const value = (error as Record<string, unknown>)[field];
+  return typeof value === "string" ? value : null;
+}
+
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Image generation failed.";
+  return (
+    (error instanceof Error ? error.message : null) ??
+    readErrorString(error, "message") ??
+    "Image generation failed."
+  );
+}
+
+function getGenerationFailure(error: unknown) {
+  const message = getErrorMessage(error);
+  const code = readErrorString(error, "code");
+  const type = readErrorString(error, "type");
+  const name = readErrorString(error, "name");
+
+  if (
+    code === "billing_hard_limit_reached" ||
+    type === "billing_limit_user_error"
+  ) {
+    return {
+      status: 503,
+      code: "OPENAI_BILLING_LIMIT",
+      error: "OpenAI billing hard limit has been reached."
+    };
+  }
+
+  if (code === "IMAGE_PROVIDER_CONFIGURATION") {
+    return {
+      status: 503,
+      code: "IMAGE_PROVIDER_CONFIGURATION",
+      error: "Image provider credentials are not configured."
+    };
+  }
+
+  if (
+    name === "APIConnectionTimeoutError" ||
+    /timed?\s*out/i.test(message) ||
+    /timeout/i.test(message)
+  ) {
+    return {
+      status: 504,
+      code: "OPENAI_TIMEOUT",
+      error: "OpenAI image generation timed out. Check network or proxy settings."
+    };
+  }
+
+  return {
+    status: 500,
+    code: "GENERATION_FAILED",
+    error: "Generation failed and credits were not charged."
+  };
 }
 
 export async function POST(request: Request) {
@@ -39,6 +97,16 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return jsonError(400, "VALIDATION_ERROR", "Invalid generation request.");
+  }
+
+  const compiledPrompt = compilePrompt(parsed.data);
+
+  if (isE2eTestMode()) {
+    return NextResponse.json({
+      id: "e2e-generation-id",
+      imageUrl: createE2eImageDataUrl(),
+      compiledPrompt
+    });
   }
 
   const admin = createSupabaseAdminClient();
@@ -106,7 +174,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const compiledPrompt = compilePrompt(parsed.data);
   const { data: job, error: jobError } = await admin
     .from("generation_jobs")
     .insert({
@@ -163,17 +230,15 @@ export async function POST(request: Request) {
       throw completeError;
     }
   } catch (error) {
+    const failure = getGenerationFailure(error);
+
     await admin.rpc("mark_generation_failed", {
       p_user_id: user.id,
       p_generation_id: job.id,
       p_error_message: getErrorMessage(error)
     });
 
-    return jsonError(
-      500,
-      "GENERATION_FAILED",
-      "Generation failed and credits were not charged."
-    );
+    return jsonError(failure.status, failure.code, failure.error);
   }
 
   let imageUrl: string | null = null;

@@ -5,7 +5,7 @@ create table if not exists public.profiles (
   email text not null,
   display_name text,
   avatar_url text,
-  credits_balance integer not null default 5 check (credits_balance >= 0),
+  credits_balance integer not null default 10 check (credits_balance >= 0),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

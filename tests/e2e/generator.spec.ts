@@ -1,71 +1,136 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type BrowserContext } from "@playwright/test";
 
-test("anonymous user can fill generator and sees login-required message", async ({
+const e2eAuthCookie = "prompt_studio_e2e_auth";
+
+async function signInWithE2eMock(context: BrowserContext) {
+  await context.addCookies([
+    {
+      name: e2eAuthCookie,
+      value: "1",
+      domain: "127.0.0.1",
+      path: "/"
+    }
+  ]);
+}
+
+test("home page opens and switches between Chinese and English", async ({
+  page
+}) => {
+  await page.goto("/");
+
+  await expect(
+    page.getByRole("heading", { name: "不会写 prompt，也能生成专业图片。" })
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "开始生成" })).toHaveCount(2);
+
+  await page.getByRole("button", { name: "English" }).click();
+
+  await expect(
+    page.getByRole("heading", {
+      name: "Professional images without prompt craft."
+    })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Start generating" })
+  ).toHaveCount(2);
+});
+
+test("anonymous users visiting generate are redirected to login", async ({
   page
 }) => {
   await page.goto("/generate");
 
-  await page
-    .getByRole("textbox", { name: "主题" })
-    .fill("a launch poster for a ceramic tea brand");
-
+  await expect(page).toHaveURL(/\/login\?next=%2Fgenerate$/);
   await expect(
-    page.getByText("Create a poster about a launch poster")
+    page.getByRole("heading", { name: "登录后开始生成图片。" })
   ).toBeVisible();
+});
 
-  await page.getByRole("button", { name: "生成 1 张图片" }).click();
+test("login page displays email and Google sign-in options", async ({ page }) => {
+  await page.goto("/login?next=%2Fgenerate");
 
   await expect(
-    page.getByText("请先使用 Google 登录后再生成图片。")
+    page.getByRole("heading", { name: "登录后开始生成图片。" })
   ).toBeVisible();
+  await expect(page.getByLabel("邮箱")).toBeVisible();
+  await expect(page.getByLabel("密码")).toBeVisible();
   await expect(
-    page.getByRole("dialog", { name: "登录后生成" })
+    page.getByRole("button", { name: "使用邮箱登录" })
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "使用 Google 继续" })
   ).toBeVisible();
 });
 
-test("home page links to generator", async ({ page }) => {
-  await page.goto("/");
-
-  await page.getByRole("link", { name: "开始生成" }).click();
-
-  await expect(page).toHaveURL(/\/generate$/);
-  await expect(page.getByRole("heading", { name: "创建图片" })).toBeVisible();
-});
-
-test("user can switch the interface to English", async ({ page }) => {
-  await page.goto("/");
-
-  await page.getByRole("button", { name: "English" }).click();
-
-  await expect(
-    page.getByRole("link", { name: "Start generating" })
-  ).toBeVisible();
-
-  await page.getByRole("link", { name: "Start generating" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Create an image" })
-  ).toBeVisible();
-});
-
-test("home page mobile smoke has no horizontal overflow and shows generator preview", async ({
+test("mock signed-in user can update generator controls and prompt preview", async ({
+  context,
   page
 }) => {
+  const generateRequests: string[] = [];
+
+  await signInWithE2eMock(context);
+  await page.route("**/api/generate", async (route) => {
+    generateRequests.push(route.request().url());
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "e2e-route-mock",
+        imageUrl: "",
+        compiledPrompt: "E2E route mock"
+      })
+    });
+  });
+
+  await page.goto("/generate");
+
+  await expect(page.getByText("AI 创作工作台")).toBeVisible();
+  await expect(page.getByText("创作控制台")).toBeVisible();
+
+  await page.getByLabel("图片类型").selectOption("social");
+  await page.getByLabel("画面比例").selectOption("16:9");
+  await page.getByLabel("风格").selectOption("cinematic");
+  await page.getByLabel("场景").selectOption("nature");
+  await page.getByLabel("留白").selectOption("left_text_space");
+  await page.getByLabel("主题").fill("lake view");
+  await page
+    .getByLabel("补充要求")
+    .fill("Premium, calm, clean background");
+
+  await expect(
+    page.getByText("Create a social media image about lake view", {
+      exact: false
+    })
+  ).toBeVisible();
+  await expect(
+    page.getByText("cinematic lighting and framing", { exact: false })
+  ).toBeVisible();
+  await expect(
+    page.getByText("natural environment", { exact: false })
+  ).toBeVisible();
+  await expect(
+    page.getByText("wide 16:9 composition", { exact: false })
+  ).toBeVisible();
+  await expect(
+    page.getByText("negative space on the left", { exact: false })
+  ).toBeVisible();
+  await expect(
+    page.getByText("Additional requirements: Premium, calm, clean background.", {
+      exact: false
+    })
+  ).toBeVisible();
+  expect(generateRequests).toHaveLength(0);
+});
+
+test("mobile home page has no horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
-  await expect(page.getByText("生成器预览")).toBeVisible();
+  await expect(page.getByText("自动组装的英文 prompt")).toBeVisible();
 
   const hasHorizontalOverflow = await page.evaluate(() => {
     const root = document.documentElement;
     return root.scrollWidth > root.clientWidth + 1;
   });
   expect(hasHorizontalOverflow).toBe(false);
-
-  const previewTop = await page.getByText("生成器预览").evaluate((element) => {
-    return element.getBoundingClientRect().top;
-  });
-  expect(previewTop).toBeLessThan(844);
 });

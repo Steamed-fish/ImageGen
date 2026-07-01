@@ -21,12 +21,32 @@ export const dictionaries = {
     },
     nav: {
       generate: "生成",
-      history: "历史"
+      history: "作品库",
+      account: "账户"
     },
     account: {
       signIn: "登录",
       signOut: "退出",
       credits: "积分"
+    },
+    login: {
+      eyebrow: "账户",
+      title: "登录后开始生成图片。",
+      description:
+        "使用邮箱注册或登录，也可以继续使用 Google。新用户会自动获得 10 个免费积分。",
+      modeLabel: "登录方式",
+      signInTab: "登录",
+      signUpTab: "注册",
+      email: "邮箱",
+      emailPlaceholder: "you@example.com",
+      password: "密码",
+      passwordPlaceholder: "至少 6 位字符",
+      signInWithEmail: "使用邮箱登录",
+      signUpWithEmail: "创建账户",
+      continueWithGoogle: "使用 Google 继续",
+      or: "或者",
+      pending: "处理中...",
+      checkEmail: "请查收邮件并确认账户，然后回到这里登录。"
     },
     home: {
       eyebrow: "Prompt Studio",
@@ -79,7 +99,7 @@ export const dictionaries = {
       },
       submit: "生成 1 张图片",
       emptyPrompt: "输入主题后预览专业英文 prompt。",
-      signInRequired: "请先使用 Google 登录后再生成图片。",
+      signInRequired: "请先登录后再生成图片。",
       genericError: "图片生成失败，请稍后重试。",
       fallbackError: "生成失败。"
     },
@@ -96,8 +116,7 @@ export const dictionaries = {
     authDialog: {
       title: "登录后生成",
       description:
-        "你可以先准备 prompt。真正创建图片时，需要使用 Google 登录。",
-      continueWithGoogle: "使用 Google 继续"
+        "你可以先准备 prompt。真正创建图片时，需要先登录账户。"
     },
     upgrade: {
       title: "升级功能即将开放",
@@ -108,9 +127,9 @@ export const dictionaries = {
       joined: "已加入"
     },
     history: {
-      title: "生成历史",
+      title: "作品库",
       emptyTitle: "还没有生成图片",
-      emptyDescription: "第一次成功生成后，图片会出现在这里。",
+      emptyDescription: "第一次成功生成后，作品会出现在这里。",
       previewUnavailable: "预览不可用",
       openImage: "打开图片"
     },
@@ -119,6 +138,10 @@ export const dictionaries = {
       INSUFFICIENT_CREDITS: "你的免费积分已用完。",
       GENERATION_IN_PROGRESS: "已有图片正在生成，请稍后再试。",
       GENERATION_FAILED: "生成失败，积分不会被扣除。",
+      IMAGE_PROVIDER_CONFIGURATION:
+        "图片生成服务密钥未配置，请在 .env.local 设置 ZHIPU_API_KEY。",
+      OPENAI_TIMEOUT: "无法连接 OpenAI 图片服务，请检查网络或代理设置。",
+      OPENAI_BILLING_LIMIT: "OpenAI 账户额度已达上限，请检查 Billing 设置。",
       VALIDATION_ERROR: "请检查表单内容。",
       PROFILE_NOT_FOUND: "无法加载账户资料。",
       JOB_CREATE_FAILED: "无法启动生成任务。",
@@ -133,12 +156,32 @@ export const dictionaries = {
     },
     nav: {
       generate: "Generate",
-      history: "History"
+      history: "Library",
+      account: "Account"
     },
     account: {
       signIn: "Sign in",
       signOut: "Sign out",
       credits: "credits"
+    },
+    login: {
+      eyebrow: "Account",
+      title: "Sign in to start generating images.",
+      description:
+        "Create or access your account with email, or continue with Google. New users receive 10 free credits automatically.",
+      modeLabel: "Auth mode",
+      signInTab: "Sign in",
+      signUpTab: "Create account",
+      email: "Email",
+      emailPlaceholder: "you@example.com",
+      password: "Password",
+      passwordPlaceholder: "At least 6 characters",
+      signInWithEmail: "Sign in with email",
+      signUpWithEmail: "Create account",
+      continueWithGoogle: "Continue with Google",
+      or: "or",
+      pending: "Working...",
+      checkEmail: "Check your email to confirm your account, then return here to sign in."
     },
     home: {
       eyebrow: "Prompt Studio",
@@ -193,7 +236,7 @@ export const dictionaries = {
       },
       submit: "Generate 1 image",
       emptyPrompt: "Enter a subject to preview the professional prompt.",
-      signInRequired: "Please sign in with Google to generate an image.",
+      signInRequired: "Please sign in to generate an image.",
       genericError: "We couldn't generate your image. Please try again.",
       fallbackError: "Generation failed."
     },
@@ -210,8 +253,7 @@ export const dictionaries = {
     authDialog: {
       title: "Sign in to generate",
       description:
-        "You can prepare the prompt before signing in. Google login is required when you create the image.",
-      continueWithGoogle: "Continue with Google"
+        "You can prepare the prompt before signing in. An account is required when you create the image."
     },
     upgrade: {
       title: "Upgrade coming soon",
@@ -222,10 +264,10 @@ export const dictionaries = {
       joined: "Joined"
     },
     history: {
-      title: "Generation history",
+      title: "Creative library",
       emptyTitle: "No generated images yet",
       emptyDescription:
-        "Your completed generations will appear here after the first successful run.",
+        "Your completed work will appear here after the first successful run.",
       previewUnavailable: "Preview unavailable",
       openImage: "Open image"
     },
@@ -234,6 +276,11 @@ export const dictionaries = {
       INSUFFICIENT_CREDITS: "You have used your free credits.",
       GENERATION_IN_PROGRESS: "An image is already being generated.",
       GENERATION_FAILED: "Generation failed and credits were not charged.",
+      IMAGE_PROVIDER_CONFIGURATION:
+        "Image provider credentials are not configured. Set ZHIPU_API_KEY in .env.local.",
+      OPENAI_TIMEOUT:
+        "OpenAI image generation timed out. Check network or proxy settings.",
+      OPENAI_BILLING_LIMIT: "The OpenAI account billing limit has been reached.",
       VALIDATION_ERROR: "Please check the form.",
       PROFILE_NOT_FOUND: "Your account profile could not be loaded.",
       JOB_CREATE_FAILED: "Could not start the generation.",

@@ -2,7 +2,7 @@
 
 Prompt Studio is a structured AI image generation MVP. Users choose an image type, aspect ratio, style, scene, whitespace direction, subject, and extra requirements; the app compiles those inputs into a professional GPT Image prompt and generates one image through the OpenAI Images API.
 
-The MVP includes the home page, generator, Supabase Google OAuth login, generation history, credit tracking, and an upgrade waitlist. New profiles receive 5 starter credits during profile bootstrap. A successful generation uploads the image to Supabase Storage and then charges 1 credit through a Supabase RPC. The upgrade flow records waitlist interest only; there is no real payment processing.
+The MVP includes the home page, generator, Supabase Google OAuth login, generation history, credit tracking, and an upgrade waitlist. New profiles receive 10 starter credits during profile bootstrap. A successful generation uploads the image to Supabase Storage and then charges 1 credit through a Supabase RPC. The upgrade flow records waitlist interest only; there is no real payment processing.
 
 ## Stack
 
